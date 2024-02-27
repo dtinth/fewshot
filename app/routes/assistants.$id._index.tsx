@@ -1,4 +1,10 @@
-import { Add, Edit, FileDownload, FileUpload } from "@mui/icons-material";
+import {
+  Add,
+  DataObject,
+  Edit,
+  FileDownload,
+  FileUpload,
+} from "@mui/icons-material";
 import {
   Checkbox,
   FormControlLabel,
@@ -102,6 +108,11 @@ export default function AssistantPage() {
         a.download = `${assistant.id}.json`;
         a.click();
       },
+    })
+    .addButton({
+      label: "Edit JSON",
+      startIcon: <DataObject />,
+      href: `/assistants/${id}/json`,
     });
 
   builder.section("Model prompt");

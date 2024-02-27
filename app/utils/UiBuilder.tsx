@@ -83,6 +83,7 @@ export class PageBuilder extends UiBuilder {
     keepLabelOnTop?: boolean;
     disabled?: boolean;
     type?: "text" | "password";
+    monospace?: boolean;
   }) {
     return this.add(
       <TextField
@@ -97,6 +98,12 @@ export class PageBuilder extends UiBuilder {
         type={options.type}
         InputProps={{
           readOnly: options.readOnly,
+          sx: options.monospace
+            ? {
+                fontFamily:
+                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+              }
+            : undefined,
           ...(options.readOnly && !options.disabled
             ? {
                 endAdornment: (
