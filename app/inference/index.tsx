@@ -1,6 +1,7 @@
 import { get, set } from "idb-keyval";
 import { getStore } from "~/db/keyval";
 import { AssistantDocument } from "~/db/schema";
+import { enqueueSnackbar } from "~/utils/enqueueSnackbar";
 
 export interface RunAssistantResult {
   output: Record<string, string>;
@@ -88,6 +89,12 @@ export async function runAssistant(
       body: JSON.stringify(request),
     }
   );
+  if (!response.ok) {
+    const text = await response.text();
+    enqueueSnackbar(text, { variant: "error" });
+    return { output: {} };
+  }
+
   const data = await response.json();
   console.log("Response from Gemini", data);
 
