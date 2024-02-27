@@ -85,14 +85,14 @@ export default function AssistantExamplePage() {
     );
   }
   builder
-    .buttonBar()
-    .addButton({ label: "Save example", type: "submit", variant: "contained" })
-    .addButton({
+    .buttonBarBuilder()
+    .submitButton({ label: "Save example" })
+    .button({
       label: "Cancel",
       href: `/assistants/${assistant.id}`,
       variant: "outlined",
     })
-    .addButton({
+    .button({
       label: "Delete",
       variant: "outlined",
       color: "error",

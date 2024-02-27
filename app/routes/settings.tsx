@@ -42,9 +42,7 @@ export default function SettingsPage() {
     name: "apiKey",
     defaultValue: loaderData.apiKey,
   });
-  builder
-    .buttonBar()
-    .addButton({ label: "Save", type: "submit", variant: "contained" });
+  builder.buttonBarBuilder().submitButton({ label: "Save" });
 
   return <Form method="POST">{builder.build()}</Form>;
 }

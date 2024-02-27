@@ -12,10 +12,10 @@ import { Fragment, ReactNode } from "react";
 
 type UiBuildable = ReactNode | (() => ReactNode);
 
-export class UiBuilder<TParent = void> {
+export class UiBuilder {
   protected elements: UiBuildable[] = [];
 
-  constructor(public parent: TParent) {}
+  constructor() {}
 
   add(element: UiBuildable) {
     if (typeof element === "function") {
@@ -64,8 +64,8 @@ export class PageBuilder extends UiBuilder {
     return this.add(<Typography variant="body1">{text}</Typography>);
   }
 
-  buttonBar() {
-    const builder = new ButtonBarBuilder(this);
+  buttonBarBuilder() {
+    const builder = new ButtonBarBuilder();
     this.add(() => builder.build());
     return builder;
   }
@@ -150,28 +150,16 @@ export class PageBuilder extends UiBuilder {
 
 type UiColor = "primary" | "secondary" | "success" | "error";
 
-export class ButtonBarBuilder<TParent> extends UiBuilder<TParent> {
-  private justifyContent: string | undefined;
-
+export class ButtonBarBuilder extends UiBuilder {
   override build() {
     return (
-      <Stack
-        spacing={2}
-        direction="row"
-        justifyContent={this.justifyContent}
-        alignSelf="stretch"
-      >
+      <Stack spacing={2} direction="row" alignSelf="stretch">
         {super.build()}
       </Stack>
     );
   }
 
-  centered() {
-    this.justifyContent = "center";
-    return this;
-  }
-
-  addButton(options: {
+  button(options: {
     label?: string;
     href?: string;
     variant?: "outlined" | "contained";
@@ -197,5 +185,9 @@ export class ButtonBarBuilder<TParent> extends UiBuilder<TParent> {
         {options.label}
       </ButtonComponent>
     );
+  }
+
+  submitButton(options: Parameters<this["button"]>[0]) {
+    return this.button({ type: "submit", variant: "contained", ...options });
   }
 }

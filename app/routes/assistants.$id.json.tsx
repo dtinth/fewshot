@@ -42,9 +42,7 @@ export default function AssistantJsonPage() {
     defaultValue: JSON.stringify(assistant, null, 2),
     monospace: true,
   });
-  builder
-    .buttonBar()
-    .addButton({ label: "Save", type: "submit", variant: "contained" });
+  builder.buttonBarBuilder().submitButton({ label: "Save" });
 
   return <Form method="POST">{builder.build()}</Form>;
 }

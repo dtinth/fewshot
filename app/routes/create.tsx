@@ -48,6 +48,9 @@ export function buildAssistantForm(
     multiline: true,
     large: true,
   });
-
-  builder.submitButton({ label: existing ? "Save" : "Create assistant" });
+  builder.buttonBarBuilder().button({
+    label: existing ? "Save" : "Create assistant",
+    type: "submit",
+    variant: "contained",
+  });
 }

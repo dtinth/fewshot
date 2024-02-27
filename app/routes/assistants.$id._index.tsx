@@ -66,13 +66,13 @@ export default function AssistantPage() {
   const { id, assistant } = useLoaderData<typeof clientLoader>();
   const builder = new PageBuilder(`Assistant: ${assistant.name}`);
   builder
-    .buttonBar()
-    .addButton({
+    .buttonBarBuilder()
+    .button({
       label: "Edit assistant",
       href: `/assistants/${id}/edit`,
       variant: "outlined",
     })
-    .addButton({
+    .button({
       label: "Import",
       startIcon: <FileUpload />,
       onClick: async () => {
@@ -95,7 +95,7 @@ export default function AssistantPage() {
         revalidator.revalidate();
       },
     })
-    .addButton({
+    .button({
       label: "Export",
       startIcon: <FileDownload />,
       onClick: async () => {
@@ -109,7 +109,7 @@ export default function AssistantPage() {
         a.click();
       },
     })
-    .addButton({
+    .button({
       label: "Edit JSON",
       startIcon: <DataObject />,
       href: `/assistants/${id}/json`,
@@ -128,13 +128,13 @@ export default function AssistantPage() {
   builder.section("Input–output examples");
   builder.add(<InputOutputExamples assistant={assistant} />);
   builder
-    .buttonBar()
-    .addButton({
+    .buttonBarBuilder()
+    .button({
       label: "Add an example",
       href: `/assistants/${id}/examples/new`,
       startIcon: <Add />,
     })
-    .addButton({
+    .button({
       label: "Import CSV",
       startIcon: <FileUpload />,
       onClick: async () => {
@@ -189,7 +189,7 @@ export default function AssistantPage() {
         revalidator.revalidate();
       },
     })
-    .addButton({
+    .button({
       label: "Export CSV",
       startIcon: <FileDownload />,
       onClick: async () => {
@@ -236,10 +236,8 @@ function ModelUseForm(props: ModelUseForm) {
     });
   }
 
-  builder.buttonBar().addButton({
+  builder.buttonBarBuilder().submitButton({
     label: "Run model",
-    variant: "contained",
-    type: "submit",
     loadable: { loading: navigation.state === "submitting" },
   });
 
@@ -259,7 +257,7 @@ function ModelUseForm(props: ModelUseForm) {
     });
   }
 
-  builder.buttonBar().addButton({
+  builder.buttonBarBuilder().button({
     label: "Add as example",
     startIcon: <Add />,
     color: "secondary",
