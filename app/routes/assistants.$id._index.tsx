@@ -23,14 +23,15 @@ import {
   Form,
   useActionData,
   useLoaderData,
+  useNavigate,
   useNavigation,
   useRevalidator,
 } from "@remix-run/react";
 import { ReadableAtom, atom } from "nanostores";
 import Papa from "papaparse";
-import { ReactNode, useState } from "react";
+import { ReactNode, useRef, useState } from "react";
 import { ConfigureBanner } from "~/ConfigureBanner.client";
-import { getAssistant, putAssistant } from "~/assistants";
+import { addAsExampleMap, getAssistant, putAssistant } from "~/assistants";
 import { AssistantDocument } from "~/db/schema";
 import { getApiKey, runAssistant } from "~/inference";
 import { PageBuilder } from "~/utils/UiBuilder";
@@ -218,14 +219,17 @@ interface ModelUseForm {
 function ModelUseForm(props: ModelUseForm) {
   const loaderData = useLoaderData<typeof clientLoader>();
   const actionData = useActionData<typeof clientAction>();
+  const navigate = useNavigate();
   const navigation = useNavigation();
   const { assistant } = props;
   const builder = new PageBuilder();
   const output = actionData?.output;
+  const columns = assistant.dataPrompt.columns;
+  const ref = useRef<HTMLFormElement>(null);
 
   builder.add(loaderData.needsConfiguring ? <ConfigureBanner /> : <></>);
 
-  for (const column of assistant.dataPrompt.columns) {
+  for (const column of columns) {
     if (!column.isInput) continue;
     builder.textField({
       label: column.displayName,
@@ -241,7 +245,7 @@ function ModelUseForm(props: ModelUseForm) {
     loadable: { loading: navigation.state === "submitting" },
   });
 
-  for (const column of assistant.dataPrompt.columns) {
+  for (const column of columns) {
     if (column.isInput) continue;
     const outputText = output?.[column.columnId];
     builder.textField({
@@ -262,10 +266,24 @@ function ModelUseForm(props: ModelUseForm) {
     startIcon: <Add />,
     color: "secondary",
     disabled: !output,
+    onClick: async () => {
+      const form = ref.current;
+      if (!form) return;
+      const columnBindings = new Map<string, string>();
+      for (const column of columns) {
+        const input = form.elements.namedItem(
+          `${column.isInput ? "inputs" : "outputs"}.${column.columnId}`
+        ) as HTMLTextAreaElement;
+        columnBindings.set(column.columnId, input.value);
+      }
+      const id = generateId();
+      addAsExampleMap.set(id, columnBindings);
+      navigate(`/assistants/${assistant.id}/examples/${id}`);
+    },
   });
 
   return (
-    <Form method="POST" style={{ width: "100%" }}>
+    <Form method="POST" style={{ width: "100%" }} ref={ref}>
       {builder.build()}
     </Form>
   );

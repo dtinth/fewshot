@@ -24,3 +24,5 @@ export async function putAssistant(assistant: AssistantDocument) {
   set(`assistant:${assistant.id}`, assistant, getStore());
   set("index", index, getStore());
 }
+
+export const addAsExampleMap = new Map<string, Map<string, string>>();

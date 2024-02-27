@@ -7,7 +7,7 @@ import {
   useLoaderData,
   useNavigate,
 } from "@remix-run/react";
-import { getAssistant, putAssistant } from "~/assistants";
+import { addAsExampleMap, getAssistant, putAssistant } from "~/assistants";
 import { AssistantDocument } from "~/db/schema";
 import { PageBuilder } from "~/utils/UiBuilder";
 import { enqueueSnackbar } from "~/utils/enqueueSnackbar";
@@ -79,7 +79,11 @@ export default function AssistantExamplePage() {
         fullWidth
         label={column.displayName}
         color={column.isInput ? "primary" : "secondary"}
-        defaultValue={example?.columnBindings?.[column.columnId]}
+        defaultValue={
+          example?.columnBindings?.[column.columnId] ??
+          addAsExampleMap.get(exampleId)?.get(column.columnId) ??
+          ""
+        }
         name={`columnBindings.${column.columnId}`}
       />
     );
