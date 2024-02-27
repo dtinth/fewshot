@@ -44,7 +44,7 @@ export const DataPrompt = z.object({
       })
     )
     .default([]),
-  rowsUsed: z.array(z.string()).default([]),
+  // rowsUsed: z.array(z.string()).default([]),
 });
 
 export type DataPrompt = z.infer<typeof DataPrompt>;

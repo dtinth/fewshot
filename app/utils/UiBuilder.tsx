@@ -90,6 +90,8 @@ export class PageBuilder extends UiBuilder {
     disabled?: boolean;
     type?: "text" | "password";
     monospace?: boolean;
+    placeholder?: string;
+    helperText?: string;
   }) {
     return this.add(
       <TextField
@@ -102,6 +104,8 @@ export class PageBuilder extends UiBuilder {
         value={options.value}
         fullWidth={options.large}
         type={options.type}
+        placeholder={options.placeholder}
+        helperText={options.helperText}
         InputProps={{
           readOnly: options.readOnly,
           sx: options.monospace

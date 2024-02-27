@@ -38,6 +38,8 @@ export function buildAssistantForm(
     name: "name",
     required: true,
     defaultValue: existing?.name,
+    placeholder: "Polish my writing",
+    keepLabelOnTop: true,
   });
 
   builder.say("Give it a system prompt to guide the model’s behavior.");
@@ -47,6 +49,9 @@ export function buildAssistantForm(
     defaultValue: existing?.dataPrompt.preamble,
     multiline: true,
     large: true,
+    placeholder:
+      "Please improve the text by fixing typos, improve the grammar and clarity. Also, replace dumb quotes with smart quotes.",
+    keepLabelOnTop: true,
   });
   builder.buttonBarBuilder().button({
     label: existing ? "Save" : "Create assistant",

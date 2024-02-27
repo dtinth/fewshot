@@ -21,7 +21,9 @@ export async function runAssistant(
 
   const columns = assistant.dataPrompt.columns;
   const parts: { text: string }[] = [];
-  parts.push({ text: assistant.dataPrompt.preamble });
+  if (assistant.dataPrompt.preamble.trim()) {
+    parts.push({ text: assistant.dataPrompt.preamble });
+  }
   for (const rows of assistant.dataPrompt.rows) {
     for (const { columnId, displayName } of columns) {
       parts.push({ text: displayName + " " + rows.columnBindings[columnId] });
