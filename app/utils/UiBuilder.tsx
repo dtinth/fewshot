@@ -8,24 +8,26 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { Fragment, ReactNode } from "react";
+import { Fragment, ReactNode, createElement } from "react";
 
 type UiBuildable = ReactNode | (() => ReactNode);
 
 export class UiBuilder {
   protected elements: UiBuildable[] = [];
+  private nextKey: [string, number] = ["", 1];
 
   constructor() {}
 
+  protected generateKey() {
+    return `${this.nextKey[0]}.${this.nextKey[1]++}`;
+  }
+
   add(element: UiBuildable) {
+    const key = this.generateKey();
     if (typeof element === "function") {
-      this.elements.push(() => (
-        <Fragment key={this.elements.length}>{element()}</Fragment>
-      ));
+      this.elements.push(() => <Fragment key={key}>{element()}</Fragment>);
     } else {
-      this.elements.push(
-        <Fragment key={this.elements.length}>{element}</Fragment>
-      );
+      this.elements.push(<Fragment key={key}>{element}</Fragment>);
     }
     return this;
   }
@@ -60,8 +62,12 @@ export class PageBuilder extends UiBuilder {
     );
   }
 
-  say(text: ReactNode) {
-    return this.add(<Typography variant="body1">{text}</Typography>);
+  say(...text: ReactNode[]) {
+    return this.add(
+      <Typography variant="body1">
+        {createElement(Fragment, null, ...text)}
+      </Typography>
+    );
   }
 
   buttonBarBuilder() {

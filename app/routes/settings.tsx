@@ -1,4 +1,3 @@
-import { Link } from "@mui/material";
 import {
   ClientActionFunctionArgs,
   Form,
@@ -7,6 +6,9 @@ import {
 import { getApiKey, setApiKey } from "~/inference";
 import { PageBuilder } from "~/utils/UiBuilder";
 import { enqueueSnackbar } from "~/utils/enqueueSnackbar";
+import { link } from "~/utils/link";
+
+const GEMINI_URL = "https://makersuite.google.com/app/prompts/new_freeform";
 
 export const clientLoader = async () => {
   return {
@@ -28,13 +30,9 @@ export default function SettingsPage() {
 
   builder.section("Gemini API key");
   builder.say(
-    <>
-      Grab your API key from the{" "}
-      <Link href="https://makersuite.google.com/app/prompts/new_freeform">
-        Google AI Studio
-      </Link>
-      .
-    </>
+    "Grab your API key from ",
+    link(GEMINI_URL, "Google AI Studio"),
+    "."
   );
   builder.textField({
     type: "password",
