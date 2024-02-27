@@ -14,7 +14,7 @@ import { useLoaderData } from "@remix-run/react";
 import { get } from "idb-keyval";
 import { getStore } from "~/db/keyval";
 import { IndexDocument } from "~/db/schema";
-import { UiBuilder } from "~/utils/UiBuilder";
+import { PageBuilder } from "~/utils/UiBuilder";
 
 export const meta: MetaFunction = () => {
   return [
@@ -33,7 +33,7 @@ export const clientLoader = async () => {
 
 export default function Index() {
   const index = useLoaderData<typeof clientLoader>();
-  const builder = new UiBuilder("Your assistants");
+  const builder = new PageBuilder("Your assistants");
   builder.add(
     <Stack spacing={2} direction="row">
       <Button variant="contained" href="/create">

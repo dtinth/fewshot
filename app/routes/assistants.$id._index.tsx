@@ -1,25 +1,278 @@
-import { Button } from "@mui/material";
-import { ClientLoaderFunctionArgs, useLoaderData } from "@remix-run/react";
-import { get } from "idb-keyval";
-import { getStore } from "~/db/keyval";
+import { Add, Edit, FileDownload, FileUpload } from "@mui/icons-material";
+import {
+  Checkbox,
+  FormControlLabel,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from "@mui/material";
+import { useStore } from "@nanostores/react";
+import {
+  ClientActionFunctionArgs,
+  ClientLoaderFunctionArgs,
+  Form,
+  useActionData,
+  useLoaderData,
+  useNavigation,
+  useRevalidator,
+} from "@remix-run/react";
+import { ReadableAtom, atom } from "nanostores";
+import { ReactNode, useState } from "react";
+import { getAssistant, putAssistant } from "~/assistants";
 import { AssistantDocument } from "~/db/schema";
-import { UiBuilder } from "~/utils/UiBuilder";
+import { runAssistant } from "~/inference";
+import { PageBuilder } from "~/utils/UiBuilder";
 
 export const clientLoader = async (args: ClientLoaderFunctionArgs) => {
   const id = args.params.id;
-  const assistant = AssistantDocument.parse(
-    await get(`assistant:${id}`, getStore())
-  );
+  const assistant = await getAssistant(id);
   return { id, assistant };
 };
 
+export const clientAction = async (args: ClientActionFunctionArgs) => {
+  const formData = await args.request.formData();
+  const id = args.params.id;
+  const assistant = await getAssistant(id);
+  const submittedInputs: Record<string, string> = {};
+  const columns = assistant.dataPrompt.columns;
+  for (const { columnId, isInput } of columns) {
+    if (!isInput) continue;
+    submittedInputs[columnId] = String(
+      formData.get(`inputs.${columnId}`) || ""
+    );
+  }
+  const result = await runAssistant(assistant, submittedInputs);
+  const { output } = result;
+  return { output };
+};
+
 export default function AssistantPage() {
+  const revalidator = useRevalidator();
   const { id, assistant } = useLoaderData<typeof clientLoader>();
-  const builder = new UiBuilder(`Assistant: ${assistant.name}`);
-  builder.add(
-    <Button variant="outlined" href={`/assistants/${id}/edit`}>
-      Edit assistant
-    </Button>
+  const builder = new PageBuilder(`Assistant: ${assistant.name}`);
+  builder
+    .buttonBar()
+    .addButton({
+      label: "Edit assistant",
+      href: `/assistants/${id}/edit`,
+      variant: "outlined",
+    })
+    .addButton({
+      label: "Import",
+      startIcon: <FileUpload />,
+      onClick: async () => {
+        const [handle] = await showOpenFilePicker({
+          types: [
+            {
+              description: "JSON files",
+              accept: {
+                "application/json": [".json"],
+              },
+            },
+          ],
+        });
+        const file = await handle.getFile();
+        const newAssistant = AssistantDocument.parse(
+          JSON.parse(await file.text())
+        );
+        newAssistant.id = assistant.id;
+        await putAssistant(newAssistant);
+        revalidator.revalidate();
+      },
+    })
+    .addButton({
+      label: "Export",
+      startIcon: <FileDownload />,
+      onClick: async () => {
+        const blob = new Blob([JSON.stringify(assistant)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${assistant.id}.json`;
+        a.click();
+      },
+    });
+
+  builder.section("Model prompt");
+  builder.say(
+    <>
+      <strong>Prompt:</strong> {assistant.dataPrompt.preamble}
+    </>
   );
+
+  builder.section("Use the model");
+  builder.add(<ModelUseForm assistant={assistant} />);
+
+  builder.section("Input–output examples");
+  builder.add(<InputOutputExamples assistant={assistant} />);
+  builder.buttonBar().addButton({
+    label: "Add an example",
+    href: `/assistants/${id}/examples/new`,
+    startIcon: <Add />,
+  });
+
   return builder.build();
+}
+
+interface ModelUseForm {
+  assistant: AssistantDocument;
+}
+function ModelUseForm(props: ModelUseForm) {
+  const actionData = useActionData<typeof clientAction>();
+  const navigation = useNavigation();
+  const { assistant } = props;
+  const builder = new PageBuilder();
+  const output = actionData?.output;
+
+  for (const column of assistant.dataPrompt.columns) {
+    if (!column.isInput) continue;
+    builder.textField({
+      label: column.displayName,
+      name: `inputs.${column.columnId}`,
+      large: true,
+      multiline: true,
+      keepLabelOnTop: true,
+    });
+  }
+
+  builder.buttonBar().addButton({
+    label: "Run model",
+    variant: "contained",
+    type: "submit",
+    loadable: { loading: navigation.state === "submitting" },
+  });
+
+  for (const column of assistant.dataPrompt.columns) {
+    if (column.isInput) continue;
+    const outputText = output?.[column.columnId];
+    builder.textField({
+      label: column.displayName,
+      name: `outputs.${column.columnId}`,
+      large: true,
+      multiline: true,
+      color: "secondary",
+      readOnly: true,
+      disabled: !outputText,
+      value: outputText,
+      keepLabelOnTop: true,
+    });
+  }
+
+  builder.buttonBar().addButton({
+    label: "Add as example",
+    startIcon: <Add />,
+    color: "secondary",
+    disabled: !output,
+  });
+
+  return (
+    <Form method="POST" style={{ width: "100%" }}>
+      {builder.build()}
+    </Form>
+  );
+}
+
+interface InputOutputExamples {
+  assistant: AssistantDocument;
+}
+function InputOutputExamples(props: InputOutputExamples) {
+  const { assistant } = props;
+  const [$expanded] = useState(() => atom(false));
+  return (
+    <>
+      <FormControlLabel
+        control={
+          <AtomConnector atom={$expanded}>
+            {(expanded) => (
+              <Checkbox
+                checked={expanded}
+                onChange={(e) => $expanded.set(e.target.checked)}
+              />
+            )}
+          </AtomConnector>
+        }
+        label="Expand text"
+      />
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              {assistant.dataPrompt.columns.map((column) => (
+                <TableCell key={column.columnId}>
+                  {column.displayName}
+                </TableCell>
+              ))}
+              <TableCell>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {assistant.dataPrompt.rows.map((row) => (
+              <TableRow key={row.rowId}>
+                {Object.entries(row.columnBindings).map(([columnId, cell]) => (
+                  <TableCell key={columnId} sx={{ verticalAlign: "top" }}>
+                    <IoText text={cell} $expanded={$expanded} />
+                  </TableCell>
+                ))}
+                <TableCell sx={{ verticalAlign: "top" }}>
+                  <IconButton
+                    href={`/assistants/${assistant.id}/examples/${row.rowId}`}
+                  >
+                    <Edit />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </>
+  );
+}
+
+export interface AtomConnector<T> {
+  atom: ReadableAtom<T>;
+  children: (value: T) => React.ReactNode;
+}
+
+export function AtomConnector<T>(props: AtomConnector<T>) {
+  return <>{props.children(useStore(props.atom))}</>;
+}
+
+export interface IoText {
+  text: string;
+  $expanded: ReadableAtom<boolean>;
+}
+
+export function IoText(props: IoText) {
+  const expanded = useStore(props.$expanded);
+  return expanded ? (
+    <div style={{ whiteSpace: "pre-wrap", width: "100%" }}>{props.text}</div>
+  ) : (
+    <MultilineText>{props.text}</MultilineText>
+  );
+}
+
+export interface MultilineText {
+  children?: ReactNode;
+}
+
+export function MultilineText(props: MultilineText) {
+  return (
+    <div
+      style={{
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden",
+      }}
+    >
+      {props.children}
+    </div>
+  );
 }

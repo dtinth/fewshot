@@ -1,10 +1,9 @@
 import { ClientActionFunctionArgs, Form, redirect } from "@remix-run/react";
-import { get, set } from "idb-keyval";
-import { getStore } from "~/db/keyval";
-import { AssistantDocument, IndexDocument } from "~/db/schema";
+import { putAssistant, updateAssistantWithFormData } from "~/assistants";
+import { AssistantDocument } from "~/db/schema";
 import { enqueueSnackbar } from "~/utils/enqueueSnackbar";
 import { generateId } from "~/utils/generateId";
-import { UiBuilder } from "~/utils/UiBuilder";
+import { PageBuilder } from "~/utils/UiBuilder";
 
 export const clientAction = async (args: ClientActionFunctionArgs) => {
   const formData = await args.request.formData();
@@ -14,6 +13,7 @@ export const clientAction = async (args: ClientActionFunctionArgs) => {
     id,
     name: "Untitled assistant",
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   });
   updateAssistantWithFormData(assistant, formData);
   await putAssistant(assistant);
@@ -23,13 +23,13 @@ export const clientAction = async (args: ClientActionFunctionArgs) => {
 };
 
 export default function CreatePage() {
-  const builder = new UiBuilder("Create a new assistant");
+  const builder = new PageBuilder("Create a new assistant");
   buildAssistantForm(builder);
   return <Form method="POST">{builder.build()}</Form>;
 }
 
 export function buildAssistantForm(
-  builder: UiBuilder,
+  builder: PageBuilder,
   existing?: AssistantDocument
 ) {
   builder.say("Give your assistant a name.");
@@ -50,23 +50,4 @@ export function buildAssistantForm(
   });
 
   builder.submitButton({ label: existing ? "Save" : "Create assistant" });
-}
-
-export function updateAssistantWithFormData(
-  assistant: AssistantDocument,
-  formData: FormData
-) {
-  assistant.name = formData.get("name") as string;
-  assistant.dataPrompt.preamble = formData.get("preamble") as string;
-  assistant.updatedAt = new Date().toISOString();
-}
-
-export async function putAssistant(assistant: AssistantDocument) {
-  const index = IndexDocument.parse(await get("index", getStore()));
-  index.assistants = [
-    { id: assistant.id, name: assistant.name },
-    ...index.assistants.filter((a) => a.id !== assistant.id),
-  ];
-  set(`assistant:${assistant.id}`, assistant, getStore());
-  set("index", index, getStore());
 }
