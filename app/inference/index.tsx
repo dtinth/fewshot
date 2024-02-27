@@ -10,7 +10,7 @@ export async function runAssistant(
   assistant: Pick<AssistantDocument, "dataPrompt">,
   inputs: Record<string, string>
 ): Promise<RunAssistantResult> {
-  let apiKey = await get("apiKey", getStore());
+  let apiKey = await getApiKey();
   if (!apiKey) {
     apiKey = prompt("Enter your Gemini API key");
     if (!apiKey) {
@@ -96,4 +96,12 @@ export async function runAssistant(
     break;
   }
   return { output };
+}
+
+export async function getApiKey() {
+  return await get("apiKey", getStore());
+}
+
+export async function setApiKey(apiKey: string) {
+  return await set("apiKey", apiKey, getStore());
 }

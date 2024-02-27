@@ -1,7 +1,9 @@
+import { Settings } from "@mui/icons-material";
 import {
   AppBar,
   Box,
   CssBaseline,
+  IconButton,
   Link as MuiLink,
   LinkProps as MuiLinkProps,
   ThemeProvider,
@@ -60,6 +62,15 @@ export function MuiRoot(props: MuiRoot) {
                 <Typography variant="h6" noWrap component="div">
                   <MuiLink href="/">fewshot</MuiLink>
                 </Typography>
+                <Box sx={{ flexGrow: 1 }} />
+                <IconButton
+                  size="large"
+                  aria-label="settings"
+                  color="inherit"
+                  href="/settings"
+                >
+                  <Settings />
+                </IconButton>
               </Toolbar>
             </Container>
           </AppBar>

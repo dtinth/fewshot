@@ -21,16 +21,21 @@ import {
   useRevalidator,
 } from "@remix-run/react";
 import { ReadableAtom, atom } from "nanostores";
+import Papa from "papaparse";
 import { ReactNode, useState } from "react";
+import { ConfigureBanner } from "~/ConfigureBanner.client";
 import { getAssistant, putAssistant } from "~/assistants";
 import { AssistantDocument } from "~/db/schema";
-import { runAssistant } from "~/inference";
+import { getApiKey, runAssistant } from "~/inference";
 import { PageBuilder } from "~/utils/UiBuilder";
+import { enqueueSnackbar } from "~/utils/enqueueSnackbar";
+import { generateId } from "~/utils/generateId";
 
 export const clientLoader = async (args: ClientLoaderFunctionArgs) => {
   const id = args.params.id;
   const assistant = await getAssistant(id);
-  return { id, assistant };
+  const needsConfiguring = !(await getApiKey());
+  return { id, assistant, needsConfiguring };
 };
 
 export const clientAction = async (args: ClientActionFunctionArgs) => {
@@ -111,11 +116,87 @@ export default function AssistantPage() {
 
   builder.section("Input–output examples");
   builder.add(<InputOutputExamples assistant={assistant} />);
-  builder.buttonBar().addButton({
-    label: "Add an example",
-    href: `/assistants/${id}/examples/new`,
-    startIcon: <Add />,
-  });
+  builder
+    .buttonBar()
+    .addButton({
+      label: "Add an example",
+      href: `/assistants/${id}/examples/new`,
+      startIcon: <Add />,
+    })
+    .addButton({
+      label: "Import CSV",
+      startIcon: <FileUpload />,
+      onClick: async () => {
+        const [handle] = await showOpenFilePicker({
+          types: [
+            {
+              description: "CSV files",
+              accept: {
+                "text/csv": [".csv"],
+              },
+            },
+          ],
+        });
+        const file = await handle.getFile();
+        const text = await file.text();
+        const { data } = Papa.parse(text, { header: true });
+
+        if (!data.length) {
+          alert("No data found in the CSV file");
+          return;
+        }
+
+        const header = Object.keys(data[0] as Record<string, string>).sort();
+        const expectedHeaders = assistant.dataPrompt.columns
+          .map((c) => c.displayName)
+          .sort();
+        if (JSON.stringify(header) !== JSON.stringify(expectedHeaders)) {
+          alert("The CSV file does not match the expected columns");
+          return;
+        }
+
+        const newAssistant = AssistantDocument.parse(
+          JSON.parse(JSON.stringify(assistant))
+        );
+        const newRows: (typeof newAssistant)["dataPrompt"]["rows"] = [];
+        for (const row of data) {
+          const newRow: (typeof newRows)[number] = {
+            rowId: generateId(),
+            columnBindings: {},
+          };
+          for (const column of newAssistant.dataPrompt.columns) {
+            newRow.columnBindings[column.columnId] = (
+              row as Record<string, string>
+            )[column.displayName];
+          }
+          newRows.push(newRow);
+        }
+
+        newAssistant.dataPrompt.rows = newRows;
+        await putAssistant(newAssistant);
+        enqueueSnackbar("CSV imported", { variant: "success" });
+        revalidator.revalidate();
+      },
+    })
+    .addButton({
+      label: "Export CSV",
+      startIcon: <FileDownload />,
+      onClick: async () => {
+        const { rows, columns } = assistant.dataPrompt;
+        const csv = Papa.unparse({
+          fields: columns.map((c) => c.displayName),
+          data: rows.map((r) =>
+            columns.map((c) => r.columnBindings[c.columnId])
+          ),
+        });
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${assistant.id}.csv`;
+        a.click();
+      },
+    });
 
   return builder.build();
 }
@@ -124,11 +205,14 @@ interface ModelUseForm {
   assistant: AssistantDocument;
 }
 function ModelUseForm(props: ModelUseForm) {
+  const loaderData = useLoaderData<typeof clientLoader>();
   const actionData = useActionData<typeof clientAction>();
   const navigation = useNavigation();
   const { assistant } = props;
   const builder = new PageBuilder();
   const output = actionData?.output;
+
+  builder.add(loaderData.needsConfiguring ? <ConfigureBanner /> : <></>);
 
   for (const column of assistant.dataPrompt.columns) {
     if (!column.isInput) continue;

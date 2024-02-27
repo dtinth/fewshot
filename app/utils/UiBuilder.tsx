@@ -82,6 +82,7 @@ export class PageBuilder extends UiBuilder {
     color?: UiColor;
     keepLabelOnTop?: boolean;
     disabled?: boolean;
+    type?: "text" | "password";
   }) {
     return this.add(
       <TextField
@@ -93,6 +94,7 @@ export class PageBuilder extends UiBuilder {
         defaultValue={options.defaultValue}
         value={options.value}
         fullWidth={options.large}
+        type={options.type}
         InputProps={{
           readOnly: options.readOnly,
           ...(options.readOnly && !options.disabled
