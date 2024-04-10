@@ -1,4 +1,3 @@
-import { TextField } from "@mui/material";
 import {
   ClientActionFunctionArgs,
   ClientLoaderFunctionArgs,
@@ -69,45 +68,40 @@ export default function AssistantExamplePage() {
     useLoaderData<typeof clientLoader>();
   const navigate = useNavigate();
 
-  const builder = new PageBuilder(
-    index === -1 ? "Add new example" : `Edit example #${index + 1}`
-  );
+  const title = index === -1 ? "Add new example" : `Edit example #${index + 1}`;
+  const builder = new PageBuilder(title);
   for (const column of assistant.dataPrompt.columns) {
-    builder.add(
-      <TextField
-        multiline
-        fullWidth
-        label={column.displayName}
-        color={column.isInput ? "primary" : "secondary"}
-        defaultValue={
-          example?.columnBindings?.[column.columnId] ??
-          addAsExampleMap.get(exampleId)?.get(column.columnId) ??
-          ""
-        }
-        name={`columnBindings.${column.columnId}`}
-      />
-    );
+    builder.textField({
+      multiline: true,
+      large: true,
+      label: column.displayName,
+      color: column.isInput ? "primary" : "secondary",
+      defaultValue:
+        example?.columnBindings?.[column.columnId] ??
+        addAsExampleMap.get(exampleId)?.get(column.columnId) ??
+        "",
+      name: `columnBindings.${column.columnId}`,
+      keepLabelOnTop: true,
+    });
   }
-  builder
-    .buttonBarBuilder()
-    .submitButton({ label: "Save example" })
-    .button({
-      label: "Cancel",
-      href: `/assistants/${assistant.id}`,
-      variant: "outlined",
-    })
-    .button({
+
+  const buttons = builder.buttonBarBuilder();
+  buttons.submitButton({ label: "Save example" });
+  buttons.button({
+    label: "Cancel",
+    href: `/assistants/${assistant.id}`,
+  });
+  if (index !== -1) {
+    buttons.button({
       label: "Delete",
-      variant: "outlined",
       color: "error",
       onClick: async () => {
-        if (!confirm("Are you sure you want to delete this example?")) {
-          return;
-        }
+        if (!confirm("Are you sure you want to delete this example?")) return;
         await deleteExample(assistant.id, exampleId);
         navigate(`/assistants/${assistant.id}`, { replace: true });
       },
     });
+  }
 
   return <Form method="POST">{builder.build()}</Form>;
 }

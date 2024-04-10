@@ -8,7 +8,7 @@ import { PageBuilder } from "~/utils/UiBuilder";
 import { enqueueSnackbar } from "~/utils/enqueueSnackbar";
 import { link } from "~/utils/link";
 
-const GEMINI_URL = "https://makersuite.google.com/app/prompts/new_freeform";
+const GEMINI_URL = "https://aistudio.google.com/app/apikey";
 
 export const clientLoader = async () => {
   return {
@@ -28,18 +28,16 @@ export default function SettingsPage() {
   const loaderData = useLoaderData<typeof clientLoader>();
   const builder = new PageBuilder("Settings");
 
-  builder.section("Gemini API key");
-  builder.say(
-    "Grab your API key from ",
-    link(GEMINI_URL, "Google AI Studio"),
-    "."
-  );
-  builder.textField({
-    type: "password",
-    label: "API Key",
-    name: "apiKey",
-    defaultValue: loaderData.apiKey,
-  });
+  builder
+    .section("Gemini API key")
+    .say("Grab your API key from ", link(GEMINI_URL, "Google AI Studio"), ".")
+    .textField({
+      type: "password",
+      label: "API Key",
+      name: "apiKey",
+      defaultValue: loaderData.apiKey,
+    });
+
   builder.buttonBarBuilder().submitButton({ label: "Save" });
 
   return <Form method="POST">{builder.build()}</Form>;

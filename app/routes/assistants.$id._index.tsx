@@ -133,6 +133,7 @@ export default function AssistantPage() {
     .button({
       label: "Add an example",
       href: `/assistants/${id}/examples/new`,
+      variant: "outlined",
       startIcon: <Add />,
     })
     .button({

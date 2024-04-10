@@ -45,7 +45,7 @@ export async function runAssistant(
       if (isInput) continue;
       output[columnId] = "meow";
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     return { output };
   }
 

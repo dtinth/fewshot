@@ -163,7 +163,7 @@ type UiColor = "primary" | "secondary" | "success" | "error";
 export class ButtonBarBuilder extends UiBuilder {
   override build() {
     return (
-      <Stack spacing={2} direction="row" alignSelf="stretch">
+      <Stack gap={2} direction="row" alignSelf="stretch" flexWrap="wrap">
         {super.build()}
       </Stack>
     );
